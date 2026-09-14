@@ -230,6 +230,7 @@ function openGame(idx) {
   drawBestMoveArrow();
   updateMoveBadge();
   document.getElementById('tag-summary').hidden = true;
+  document.getElementById('coach-card').hidden = true;
 
   showScreen('analysis');
   ensureEngine();
@@ -1150,6 +1151,34 @@ function renderTagSummary() {
     `;
   }).join('');
   wrap.hidden = false;
+
+  renderCoachMessage(counts);
+}
+
+/* --- Mensaje breve del "coach" resumiendo cómo fue la partida --- */
+function renderCoachMessage(counts) {
+  const card = document.getElementById('coach-card');
+  const bubble = document.getElementById('coach-bubble');
+
+  const totalBlunders = counts.blunder[0] + counts.blunder[1];
+  const totalMistakes = counts.mistake[0] + counts.mistake[1];
+  const totalBest = counts.best[0] + counts.best[1];
+
+  let msg;
+  if (totalBlunders >= 2) {
+    msg = `Ha sido una partida con altibajos: hubo ${totalBlunders} errores graves que cambiaron el curso del juego. Revisa esas jugadas para aprender de ellas.`;
+  } else if (totalBlunders === 1) {
+    msg = 'Partida sólida en general, con un único error grave que marcó la diferencia.';
+  } else if (totalMistakes >= 2) {
+    msg = `Buen nivel general, aunque hubo ${totalMistakes} errores que se podrían haber evitado.`;
+  } else if (totalBest >= 5) {
+    msg = 'Muy buena partida — encontraste la mejor jugada del motor muchas veces.';
+  } else {
+    msg = 'Partida consistente, sin grandes sobresaltos en ningún momento.';
+  }
+
+  bubble.textContent = msg;
+  card.hidden = false;
 }
 
 /* --- Comentario de texto para la jugada actualmente mostrada --- */
