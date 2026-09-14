@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Escaque — Analiza tus partidas de ajedrez</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ===================== PANTALLA DE INICIO ===================== -->
+  <section id="screen-home" class="screen screen-home">
+    <div class="home-wrap">
+      <div class="home-mark" aria-hidden="true">
+        <svg viewBox="0 0 100 100" class="knight-mark">
+          <path d="M28 82 L30 60 Q28 50 34 44 L32 30 Q32 20 42 16 Q52 12 60 18 L58 26 L66 24 Q72 26 70 34 L60 40 Q66 46 64 54 L70 60 L72 82 Z" />
+        </svg>
+      </div>
+      <h1 class="home-title">Escaque</h1>
+      <p class="home-sub">Introduce tu usuario de Chess.com y revisa tus partidas jugada a jugada, con la evaluación de Stockfish corriendo en tu propio navegador.</p>
+
+      <form id="search-form" class="search-form" autocomplete="off">
+        <input type="text" id="username-input" placeholder="tu usuario de Chess.com" spellcheck="false" required>
+        <button type="submit" id="search-btn">
+          <span class="btn-label">Buscar partidas</span>
+        </button>
+      </form>
+
+      <p class="home-note" id="home-note">Sin registro. Sin servidores. Todo se calcula en tu dispositivo.</p>
+      <div id="home-error" class="home-error" hidden></div>
+    </div>
+  </section>
+
+  <!-- ===================== PANTALLA LISTA DE PARTIDAS ===================== -->
+  <section id="screen-games" class="screen screen-games" hidden>
+    <header class="games-header">
+      <button class="back-btn" id="back-to-home" aria-label="Volver">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 18l-6-6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="games-header-text">
+        <h2 id="games-username"></h2>
+        <p id="games-count"></p>
+      </div>
+    </header>
+    <div id="games-list" class="games-list"></div>
+  </section>
+
+  <!-- ===================== PANTALLA DE ANÁLISIS ===================== -->
+  <section id="screen-analysis" class="screen screen-analysis" hidden>
+    <header class="analysis-header">
+      <button class="back-btn" id="back-to-games" aria-label="Volver a partidas">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 18l-6-6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="analysis-title-block">
+        <h2 id="analysis-title">—</h2>
+        <p id="analysis-subtitle">—</p>
+      </div>
+      <div class="engine-status" id="engine-status">
+        <span class="engine-dot" id="engine-dot"></span>
+        <span id="engine-status-text">Cargando motor…</span>
+        <button class="engine-log-toggle" id="engine-log-toggle" title="Ver registro del motor">⋯</button>
+      </div>
+    </header>
+
+    <div class="engine-log-panel" id="engine-log-panel" hidden>
+      <div class="engine-log-head">
+        <span>Registro del motor</span>
+        <button id="engine-log-close">✕</button>
+      </div>
+      <div class="engine-log-body" id="engine-log-body"></div>
+    </div>
+
+    <div class="analysis-body">
+
+      <div class="board-column">
+        <div class="eval-bar-wrap">
+          <div class="eval-bar" id="eval-bar">
+            <div class="eval-bar-fill" id="eval-bar-fill"></div>
+            <span class="eval-bar-label" id="eval-bar-label">0.0</span>
+          </div>
+        </div>
+
+        <div class="board-wrap">
+          <div id="board"></div>
+          <svg id="best-move-arrow-layer" class="best-move-arrow-layer" viewBox="0 0 100 100"></svg>
+        </div>
+
+        <div class="board-controls">
+          <button id="ctrl-start" title="Inicio">⏮</button>
+          <button id="ctrl-prev" class="nav-primary" title="Anterior">◀</button>
+          <button id="ctrl-play" title="Reproducir">▶</button>
+          <button id="ctrl-next" class="nav-primary" title="Siguiente">▶</button>
+          <button id="ctrl-end" title="Final">⏭</button>
+          <button id="ctrl-flip" title="Girar tablero">⟳</button>
+        </div>
+
+        <div class="depth-control">
+          <label for="depth-slider">Profundidad al navegar: <span id="depth-value">16</span></label>
+          <input type="range" id="depth-slider" min="10" max="22" value="16" step="1">
+          <button id="analyze-btn" class="analyze-btn">Analizar partida completa</button>
+        </div>
+      </div>
+
+      <div class="side-column">
+
+        <div class="side-tabs">
+          <button class="side-tab active" data-tab="report">Resumen</button>
+          <button class="side-tab" data-tab="analysis">Jugada a jugada</button>
+        </div>
+
+        <!-- ===== PESTAÑA RESUMEN ===== -->
+        <div class="tab-panel" id="tab-report">
+
+          <div class="eval-graph-wrap">
+            <svg id="eval-graph" viewBox="0 0 400 100" preserveAspectRatio="none"></svg>
+          </div>
+
+          <div class="accuracy-panel" id="accuracy-panel" hidden>
+            <div class="accuracy-card">
+              <span class="accuracy-label" id="accuracy-white-label">Blancas</span>
+              <span class="accuracy-value" id="accuracy-white-value">—</span>
+            </div>
+            <div class="accuracy-card">
+              <span class="accuracy-label" id="accuracy-black-label">Negras</span>
+              <span class="accuracy-value" id="accuracy-black-value">—</span>
+            </div>
+          </div>
+
+          <div class="tag-summary" id="tag-summary" hidden></div>
+
+          <div class="progress-wrap" id="progress-wrap" hidden>
+            <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+            <span id="progress-text">Analizando…</span>
+          </div>
+        </div>
+
+        <!-- ===== PESTAÑA JUGADA A JUGADA ===== -->
+        <div class="tab-panel" id="tab-analysis" hidden>
+
+          <div class="move-comment-card" id="move-comment-card">
+            <span class="move-comment-tag" id="move-comment-tag"></span>
+            <p class="move-comment-text" id="move-comment-text">Analiza la partida completa para ver comentarios de cada jugada.</p>
+            <div class="move-comment-alts" id="move-comment-alts"></div>
+          </div>
+
+        </div>
+
+        <div class="moves-panel">
+          <div class="moves-panel-head">Jugadas</div>
+          <div class="moves-list" id="moves-list"></div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
